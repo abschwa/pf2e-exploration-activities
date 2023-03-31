@@ -87,7 +87,12 @@ export function explorationActivity(actor, tokenID) {
           selectedActivity =
             '<h3>I will <b>' + html.find('#activity')[0].value + '</b></h3>'
           generateChat(actor, selectedActivity)
-          applyEffect(actor, html.find('#activity')[0].value)
+          if (hasEffect(actor, html.find('#activity')[0].value)) {
+            removeOtherEffects(actor, html.find('#activity')[0].value)
+          } else {
+            removeOtherEffects(actor, html.find('#activity')[0].value)
+            applyEffect(actor, html.find('#activity')[0].value)
+          }
         },
       },
       cancel: {
@@ -116,41 +121,64 @@ export function explorationActivity(actor, tokenID) {
     await ChatMessage.create(chatData, {})
   }
 
+  const explorationEffects = {
+    'Avoid Notice':
+      'Compendium.pf2e-exploration-effects.exploration-effects.N8vpuGy4TzU10y8E',
+    'Cover Tracks':
+      'Compendium.pf2e-exploration-effects.exploration-effects.F6vJYLZTWDpnrnCZ',
+    Defend:
+      'Compendium.pf2e-exploration-effects.exploration-effects.GYOyFj4ziZX060rZ',
+    'Detect Magic':
+      'Compendium.pf2e-exploration-effects.exploration-effects.OjRHL0B4WAUUQc13',
+    'Follow the Expert':
+      'ompendium.pf2e-exploration-effects.exploration-effects.V347nnVBGDrVWh7k',
+    Hustle:
+      'Compendium.pf2e-exploration-effects.exploration-effects.vNUrKvoOSvEnqzhM',
+    Investigate:
+      'Compendium.pf2e-exploration-effects.exploration-effects.tDsgl8YmhZbx2May',
+    'Repeat a Spell':
+      'Compendium.pf2e-exploration-effects.exploration-effects.kh1QdKkvbNZ0qBsQ',
+    Scout:
+      'Compendium.pf2e-exploration-effects.exploration-effects.mGFBHM1lvHNZ9BsH',
+    Search:
+      'Compendium.pf2e-exploration-effects.exploration-effects.XiVLHjg5lQVMX8Fj',
+    Track:
+      'Compendium.pf2e-exploration-effects.exploration-effects.OcCXjJab7rSR3mDf',
+    Unspecified:
+      'Compendium.pf2e-exploration-effects.exploration-effects.CcyA2CzeaTBWHNHP',
+  }
+
+  const re = /\{(.*)\}/i
+
+  //used to check if effect already applied
+  function hasEffect(actor, selectedEffect) {
+    let expEffectName = selectedEffect.match(re)[1]
+    let expEffect = explorationEffects[expEffectName]
+    return (expEffect != undefined) ? token.actor.itemTypes.effect.find((effect) => effect.getFlag('core', 'sourceId') === expEffect) : false;
+  }
+
   //used to apply effect
   async function applyEffect(actor, selectedEffect) {
-    const re = /\{(.*)\}/i
     let effectName = selectedEffect.match(re)[1]
-    const explorationEffects = {
-      'Avoid Notice':
-        'Compendium.pf2e-exploration-effects.exploration-effects.N8vpuGy4TzU10y8E',
-      'Cover Tracks':
-        'Compendium.pf2e-exploration-effects.exploration-effects.F6vJYLZTWDpnrnCZ',
-      Defend:
-        'Compendium.pf2e-exploration-effects.exploration-effects.GYOyFj4ziZX060rZ',
-      'Detect Magic':
-        'Compendium.pf2e-exploration-effects.exploration-effects.OjRHL0B4WAUUQc13',
-      'Follow the Expert':
-        'ompendium.pf2e-exploration-effects.exploration-effects.V347nnVBGDrVWh7k',
-      Hustle:
-        'Compendium.pf2e-exploration-effects.exploration-effects.vNUrKvoOSvEnqzhM',
-      Investigate:
-        'Compendium.pf2e-exploration-effects.exploration-effects.tDsgl8YmhZbx2May',
-      'Repeat a Spell':
-        'Compendium.pf2e-exploration-effects.exploration-effects.kh1QdKkvbNZ0qBsQ',
-      Scout:
-        'Compendium.pf2e-exploration-effects.exploration-effects.mGFBHM1lvHNZ9BsH',
-      Search:
-        'Compendium.pf2e-exploration-effects.exploration-effects.XiVLHjg5lQVMX8Fj',
-      Track:
-        'Compendium.pf2e-exploration-effects.exploration-effects.OcCXjJab7rSR3mDf',
-      Unspecified:
-        'Compendium.pf2e-exploration-effects.exploration-effects.CcyA2CzeaTBWHNHP',
-    }
-
     let effect = explorationEffects[effectName]
     if (effect != undefined) {
       let item = (await fromUuid(effect)).toObject()
       await token.actor.createEmbeddedDocuments('Item', [item])
     }
+  }
+
+  async function removeOtherEffects(actor, selectedEffect) {
+    let expEffectName = selectedEffect.match(re)[1]
+    let expEffect = explorationEffects[expEffectName]
+      for (const effect in Object.values(explorationEffects)) {
+        if (expEffect  == effect) {
+          continue
+        } else {
+          const existing = token.actor.itemTypes.effect.find((effect) => effect.getFlag('core', 'sourceId') === expEffect)
+          if  (existing) {
+            existing.delete()
+          }
+        }
+      }
   }
 }
