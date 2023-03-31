@@ -87,12 +87,8 @@ export function explorationActivity(actor, tokenID) {
           selectedActivity =
             '<h3>I will <b>' + html.find('#activity')[0].value + '</b></h3>'
           generateChat(actor, selectedActivity)
-          if (hasEffect(actor, html.find('#activity')[0].value)) {
-            removeOtherEffects(actor, html.find('#activity')[0].value)
-          } else {
-            removeOtherEffects(actor, html.find('#activity')[0].value)
-            applyEffect(actor, html.find('#activity')[0].value)
-          }
+          removeOtherEffects(actor)
+          applyEffect(actor, html.find('#activity')[0].value)
         },
       },
       cancel: {
@@ -148,17 +144,9 @@ export function explorationActivity(actor, tokenID) {
       'Compendium.pf2e-exploration-effects.exploration-effects.CcyA2CzeaTBWHNHP',
   }
 
-  const re = /\{(.*)\}/i
-
-  //used to check if effect already applied
-  function hasEffect(actor, selectedEffect) {
-    let expEffectName = selectedEffect.match(re)[1]
-    let expEffect = explorationEffects[expEffectName]
-    return (expEffect != undefined) ? token.actor.itemTypes.effect.find((effect) => effect.getFlag('core', 'sourceId') === expEffect) : false;
-  }
-
   //used to apply effect
   async function applyEffect(actor, selectedEffect) {
+    const re = /\{(.*)\}/i
     let effectName = selectedEffect.match(re)[1]
     let effect = explorationEffects[effectName]
     if (effect != undefined) {
@@ -167,18 +155,15 @@ export function explorationActivity(actor, tokenID) {
     }
   }
 
-  async function removeOtherEffects(actor, selectedEffect) {
-    let expEffectName = selectedEffect.match(re)[1]
-    let expEffect = explorationEffects[expEffectName]
-      for (const effect in Object.values(explorationEffects)) {
-        if (expEffect  == effect) {
-          continue
-        } else {
-          const existing = token.actor.itemTypes.effect.find((effect) => effect.getFlag('core', 'sourceId') === expEffect)
-          if  (existing) {
-            existing.delete()
-          }
+  //removes other exploration activities
+  async function removeExplorationEffects(actor) {
+    for (const effectName of Object.keys(explorationEffects)) {
+      for (const fx of token.actor.itemTypes.effect) {
+        if (fx.name == effectName) {
+          console.log('removing ' + fx.name)
+          await fx.delete()
         }
       }
+    }
   }
 }
